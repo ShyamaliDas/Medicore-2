@@ -40,8 +40,8 @@ public class AuthController {
         }
     }
 
-   @Autowired
-private JwtUtils jwtUtils; // <-- Inject your JwtUtils here if it isn't already
+    @Autowired
+     private JwtUtils jwtUtils;
 
 @PostMapping("/logout")
 public ResponseEntity<AuthResponse> logout(@RequestHeader("Authorization") String tokenHeader) {
@@ -57,8 +57,7 @@ public ResponseEntity<AuthResponse> logout(@RequestHeader("Authorization") Strin
                     .body(AuthResponse.builder().success(false).message("Missing token.").build());
         }
 
-        // 2. CRITICAL: Validate the token using JwtUtils
-        // (If your method has a different name, like validateToken(token), use that)
+ 
         try {
             // This will parse the token. If the signature is wrong or expired, it throws an exception.
             String email = jwtUtils.extractEmail(token); 
@@ -73,7 +72,8 @@ public ResponseEntity<AuthResponse> logout(@RequestHeader("Authorization") Strin
                     .body(AuthResponse.builder().success(false).message("Invalid or expired token.").build());
         }
 
-        // 3. If valid, proceed with logout logic
+ 
+        
         authService.logout(token);
 
         return ResponseEntity.ok(
