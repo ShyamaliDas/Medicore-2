@@ -35,6 +35,7 @@ public class JwtUtils {
         claims.put("approval", user.getApproval());
         claims.put("iat", issuedAt.getTime() / 1000);
         claims.put("exp", expiryDate.getTime() / 1000);
+        claims.put("phone", user.getPhone());
 
         return Jwts.builder()
                 .claims(claims)
