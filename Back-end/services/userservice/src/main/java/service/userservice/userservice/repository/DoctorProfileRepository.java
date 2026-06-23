@@ -7,4 +7,5 @@ import java.util.List;
 @Repository
 public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, String> {
     List<DoctorProfile> findByApprovalTrue();
+    long countByApprovalTrue();
 }

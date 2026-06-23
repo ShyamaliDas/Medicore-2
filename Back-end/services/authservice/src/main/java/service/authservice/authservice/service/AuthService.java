@@ -9,6 +9,9 @@ import service.authservice.authservice.dto.*;
 import service.authservice.authservice.model.User;
 import service.authservice.authservice.repository.UserRepository;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -99,5 +102,13 @@ public class AuthService {
 
     public void logout(String token) {
         System.out.println("Token successfully invalidated on logout: " + token);
+    }
+
+    public Map<String, Long> getUserRoleCounts() {
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("patients", userRepository.countByRoleIgnoreCase("patient"));
+        counts.put("doctors", userRepository.countByRoleIgnoreCase("doctor"));
+        counts.put("pharmacists", userRepository.countByRoleIgnoreCase("pharmacist"));
+        return counts;
     }
 }
