@@ -13,7 +13,7 @@ import service.authservice.authservice.service.AuthService;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@RequiredArgsConstructor
+@RequiredArgsConstructor // create constractor for final field
 public class AuthController {
 
     private final AuthService authService;
