@@ -1,4 +1,4 @@
-package main.java.services.communicationservice.communicationservice.model;
+package services.communicationservice.communicationservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;

@@ -1,4 +1,4 @@
-package main.java.services.communicationservice.communicationservice.context;
+package services.communicationservice.communicationservice.context;
 
 import java.util.Map;
 

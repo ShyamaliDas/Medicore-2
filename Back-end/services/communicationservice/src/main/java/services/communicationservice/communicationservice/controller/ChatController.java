@@ -1,4 +1,4 @@
-package main.java.services.communicationservice.communicationservice.controller;
+package services.communicationservice.communicationservice.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -79,7 +79,7 @@ public class ChatController {
             ));
         }
 
-        List<ChatMessage> logs = chatRepo.findByDoctorIdAndPatientId(doctorId, patientId);
+        List<ChatMessage> logs = chatRepo.findByDoctorIdAndPatientIdOrderByCreatedAtDesc(doctorId, patientId);
 
         return ResponseEntity.ok(Map.of(
             "success", true,

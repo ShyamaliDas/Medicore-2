@@ -1,4 +1,4 @@
-package main.java.services.communicationservice.communicationservice.config;
+package services.communicationservice.communicationservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
