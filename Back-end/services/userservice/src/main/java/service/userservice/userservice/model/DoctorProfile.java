@@ -17,7 +17,7 @@ public class DoctorProfile {
     private String location;
     private Double visitingFee;
     private Double rating;
-    private Boolean approval = false;
+    @Builder.Default private Boolean approval = false;
     private LocalDateTime updatedAt;
     
     @PreUpdate @PrePersist protected void onUpdate() { this.updatedAt = LocalDateTime.now(); }

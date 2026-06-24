@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -25,6 +26,7 @@ import service.userservice.userservice.model.DoctorProfile;
 import service.userservice.userservice.model.PharmacistProfile;
 import service.userservice.userservice.repository.DoctorProfileRepository;
 import service.userservice.userservice.repository.PharmacistProfileRepository;
+import org.springframework.web.HttpMediaTypeException;
 
 @RestController 
 @RequestMapping("/api/v1/user")
@@ -140,7 +142,7 @@ public class UserController {
             docMap.put("rating", doctor.getRating());
 
             String doctorName = "Unknown Doctor";
-            /*if (finalJwtToken != null) {
+            if (finalJwtToken != null) {
                 try {
                     String authServiceUrl = "http://localhost:8001/api/v1/auth/user/" + doctor.getUserId();
                     ResponseEntity<Map> response = restTemplate.exchange(
@@ -159,7 +161,7 @@ public class UserController {
                 } catch (Exception e) {
                     System.err.println("Could not fetch name for userId " + doctor.getUserId() + ": " + e.getMessage());
                 }
-            }*/
+            }
             docMap.put("name", doctorName);
             return docMap;
         }).collect(Collectors.toList());
