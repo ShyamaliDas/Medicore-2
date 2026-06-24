@@ -17,6 +17,13 @@ export const ENDPOINTS = {
   // User / profile
   profile: "/user/profile",
   doctors: "/user/doctors",
+  doctorsSearch: (specialization, location) => {
+    const params = new URLSearchParams();
+    if (specialization) params.set("specialization", specialization);
+    if (location) params.set("location", location);
+    const query = params.toString();
+    return query ? `/user/doctors/search?${query}` : "/user/doctors/search";
+  },
 
   // Patient
   appointments: "/patient/appointments",

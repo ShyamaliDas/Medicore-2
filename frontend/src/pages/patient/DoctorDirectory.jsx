@@ -16,26 +16,85 @@ export default function DoctorDirectory() {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [location, setLocation] = useState("");
+
+  async function loadDoctors(spec = "", loc = "") {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await apiRequest(
+        ENDPOINTS.doctorsSearch(spec, loc),
+        { method: "GET" }
+      );
+      setDoctors(res.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadDoctors() {
-      try {
-        const res = await apiRequest(ENDPOINTS.doctors, { method: "GET" });
-        setDoctors(res.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadDoctors();
-  }, []); // empty deps = run once when the page loads
+  }, []);
 
   return (
     <>
       <Navbar />
       <div className="container mt-4">
         <h2>Available Doctors</h2>
+
+        <form
+          className="row g-3 mb-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            loadDoctors(specialization, location);
+          }}
+        >
+          <div className="col-md-4">
+            <label htmlFor="specialization" className="form-label">
+              Specialization
+            </label>
+            <input
+              id="specialization"
+              type="text"
+              className="form-control"
+              placeholder="e.g. Cardiology"
+              value={specialization}
+              onChange={(e) => setSpecialization(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="location" className="form-label">
+              Location
+            </label>
+            <input
+              id="location"
+              type="text"
+              className="form-control"
+              placeholder="e.g. Building A"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4 d-flex align-items-end gap-2">
+            <button type="submit" className="btn btn-primary">
+              Search
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => {
+                setSpecialization("");
+                setLocation("");
+                loadDoctors();
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </form>
 
         {loading && <p>Loading...</p>}
         {error && <div className="alert alert-danger">{error}</div>}

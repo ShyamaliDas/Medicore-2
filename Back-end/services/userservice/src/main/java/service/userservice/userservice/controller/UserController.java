@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -75,43 +76,82 @@ public class UserController {
     @GetMapping("/doctors")
     public ResponseEntity<?> getApprovedDoctors() {
         List<DoctorProfile> approvedDoctors = doctorRepo.findByApprovalTrue();
+        List<Map<String, Object>> enrichedDoctors = enrichDoctors(approvedDoctors);
+        return ResponseEntity.ok(Map.of("success", true, "data", enrichedDoctors));
+    }
+
+    @GetMapping("/doctors/search")
+    public ResponseEntity<?> searchDoctors(
+            @RequestParam(required = false) String specialization,
+            @RequestParam(required = false) String location) {
+        /*if (isNotPatient()) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "Forbidden: Only patients can search doctors."));
+        }*/
+
+        //String specFilter = normalizeFilter(specialization);
+        //String locFilter = normalizeFilter(location);
+
+        //List<DoctorProfile> doctors = doctorRepo.searchApprovedDoctors(specFilter, locFilter);
+        List<Map<String, Object>> enrichedDoctors = enrichDoctors(doctors);
+
+        Map<String, Object> filtersApplied = new HashMap<>();
+        filtersApplied.put("specialization", specFilter);
+        filtersApplied.put("location", locFilter);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("filters_applied", filtersApplied);
+        response.put("data", enrichedDoctors);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /*private boolean isNotPatient() {
+        return !"patient".equalsIgnoreCase(UserContext.getRole());
+    }*/
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private List<Map<String, Object>> enrichDoctors(List<DoctorProfile> doctors) {
         String jwtToken = null;
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
+        /*if (attributes != null) {
             HttpServletRequest request = attributes.getRequest();
-            jwtToken = request.getHeader("Authorization"); 
-        }
+            jwtToken = request.getHeader("Authorization");
+        }*/
         HttpHeaders headers = new HttpHeaders();
         if (jwtToken != null) {
             headers.set("Authorization", jwtToken);
         }
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         String finalJwtToken = jwtToken;
-        List<Map<String, Object>> enrichedDoctors = approvedDoctors.stream().map(doctor -> {
+
+        return doctors.stream().map(doctor -> {
             Map<String, Object> docMap = new HashMap<>();
-            docMap.put("userId", doctor.getUserId());
+            docMap.put("doctorId", doctor.getUserId());
             docMap.put("specialization", doctor.getSpecialization());
             docMap.put("qualification", doctor.getQualification());
             docMap.put("location", doctor.getLocation());
-            docMap.put("visitingFee", doctor.getVisitingFee());
+            docMap.put("visiting_fee", doctor.getVisitingFee());
             docMap.put("rating", doctor.getRating());
-            docMap.put("approval", doctor.getApproval());
-            docMap.put("updatedAt", doctor.getUpdatedAt());
 
-            String doctorName = "Unknown Doctor"; // Fallback
-
-            if (finalJwtToken != null) {
+            String doctorName = "Unknown Doctor";
+            /*if (finalJwtToken != null) {
                 try {
                     String authServiceUrl = "http://localhost:8001/api/v1/auth/user/" + doctor.getUserId();
-
-                    // Exchange request with the authorization headers attached
                     ResponseEntity<Map> response = restTemplate.exchange(
                             authServiceUrl,
                             HttpMethod.GET,
                             requestEntity,
                             Map.class
                     );
-
                     Map<?, ?> responseBody = response.getBody();
                     if (responseBody != null && responseBody.containsKey("data")) {
                         Map<?, ?> nestedData = (Map<?, ?>) responseBody.get("data");
@@ -122,14 +162,9 @@ public class UserController {
                 } catch (Exception e) {
                     System.err.println("Could not fetch name for userId " + doctor.getUserId() + ": " + e.getMessage());
                 }
-            } else {
-                System.err.println("Skipping auth-service call: No Bearer JWT token found in request context.");
-            }
-
+            }*/
             docMap.put("name", doctorName);
             return docMap;
         }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(Map.of("success", true, "data", enrichedDoctors));
     }
 }
