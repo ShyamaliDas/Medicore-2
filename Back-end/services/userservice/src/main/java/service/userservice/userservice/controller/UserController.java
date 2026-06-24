@@ -93,7 +93,7 @@ public class UserController {
         String specFilter = normalizeFilter(specialization);
         String locFilter = normalizeFilter(location);
 
-        //List<DoctorProfile> doctors = doctorRepo.searchApprovedDoctors(specFilter, locFilter);
+        List<DoctorProfile> doctors = doctorRepo.searchApprovedDoctors(specFilter, locFilter);
         List<Map<String, Object>> enrichedDoctors = enrichDoctors(doctors);
 
         Map<String, Object> filtersApplied = new HashMap<>();
