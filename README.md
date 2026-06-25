@@ -578,6 +578,92 @@ When the token is decoded on either the client or server, it yields the followin
 
 ---
 
+#### System Users Statistics Dashboard
+
+   * **URL:** `http://localhost:3000/api/v1/user/admin/dashboard/stats`
+
+   * **Method:** `GET`
+
+   * **Auth Required:** Yes (Admin Only)
+
+   * **Description:** Generates aggregate registration numbers divided across roles to assist system reporting.
+
+Success Response (200 OK):
+
+```json
+{
+    "data": {
+        "breakdown": {
+            "pharmacists": 2,
+            "patients": 5,
+            "doctors_approved": 5,
+            "doctors_pending": 9
+        },
+        "total_users": 21
+    },
+    "success": true
+}
+
+```
+
+---
+
+
+3. Patient Experience & Discovery Extensions
+ Filter Doctors by Specialty or Location
+
+    * **URL:** `http://localhost:8002/api/v1/user/doctors/search?specialization=Cardiology&location=Building%20A`
+
+   * **Method:** `GET`
+
+   * **Auth Required:** Yes (Patient Only)
+
+   * **Description:** Extends your basic static doctor directory by introducing dynamic parameters to help patients pinpoint exactly who they need.
+
+Success Response (200 OK):
+   ```json
+ {
+    "data": [
+        {
+            "qualification": "MD, FACC",
+            "doctorId": "usr_9b8e7afbad",
+            "rating": 5.0,
+            "name": "Dr. Sarah Jenkins",
+            "specialization": "Cardiology",
+            "location": "Building A, Clinic Suite 402",
+            "visiting_fee": 150.0
+        },
+        {
+            "qualification": "MD, FACC",
+            "doctorId": "usr_b9e82c295b",
+            "rating": 5.0,
+            "name": "Dr. Sarah Jenkins",
+            "specialization": "Cardiology",
+            "location": "Building A, Clinic Suite 402",
+            "visiting_fee": 150.0
+        },
+        {
+            "qualification": "MD, FACC",
+            "doctorId": "usr_60ace5b3f5",
+            "rating": 5.0,
+            "name": "Dr. Sarah Jenkins",
+            "specialization": "Cardiology",
+            "location": "Building A, Clinic Suite 402",
+            "visiting_fee": 150.0
+        }
+    ],
+    "success": true,
+    "filters_applied": {
+        "specialization": "Cardiology",
+        "location": "Building A"
+    }
+}
+
+```
+
+---
+
+
 ### 7. Communication Service
 
 #### 💬 Send Message
