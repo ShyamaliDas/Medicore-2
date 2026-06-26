@@ -5,16 +5,22 @@ import { ENDPOINTS } from "../../api/endpoints";
 
 export default function PrescriptionsByDoctor() {
   const [doctors, setDoctors] = useState([]);
+  const [doctorsError, setDoctorsError] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  function loadDoctors() {
+    setDoctorsError("");
     apiRequest(ENDPOINTS.doctors, { auth: true })
       .then((res) => { if (res.success) setDoctors(res.data ?? []); })
-      .catch(() => {});
+      .catch((err) => setDoctorsError(err.message || "Failed to load doctors."));
+  }
+
+  useEffect(() => {
+    loadDoctors();
   }, []);
 
   async function handleSearch(e) {
@@ -72,6 +78,13 @@ export default function PrescriptionsByDoctor() {
             {loading ? "Loading…" : "Search"}
           </button>
         </form>
+
+        {doctorsError && (
+          <div className="alert alert-error" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span>Couldn't load doctors: {doctorsError}</span>
+            <button type="button" className="btn btn-outline btn-sm" onClick={loadDoctors}>Retry</button>
+          </div>
+        )}
 
         {error && <div className="alert alert-error">{error}</div>}
 

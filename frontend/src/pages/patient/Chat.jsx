@@ -8,6 +8,7 @@ export default function Chat() {
   const { user } = useAuth();
 
   const [doctors, setDoctors] = useState([]);
+  const [doctorsError, setDoctorsError] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -19,10 +20,15 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
 
-  useEffect(() => {
+  function loadDoctors() {
+    setDoctorsError("");
     apiRequest(ENDPOINTS.doctors, { auth: true })
       .then((res) => { if (res.success) setDoctors(res.data ?? []); })
-      .catch(() => {});
+      .catch((err) => setDoctorsError(err.message || "Failed to load doctors."));
+  }
+
+  useEffect(() => {
+    loadDoctors();
   }, []);
 
   useEffect(() => {
@@ -143,6 +149,13 @@ export default function Chat() {
             {loadingMessages ? "Loading…" : "Open Chat"}
           </button>
         </form>
+
+        {doctorsError && (
+          <div className="alert alert-error" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span>Couldn't load doctors: {doctorsError}</span>
+            <button type="button" className="btn btn-outline btn-sm" onClick={loadDoctors}>Retry</button>
+          </div>
+        )}
 
         {error && <div className="alert alert-error">{error}</div>}
 
