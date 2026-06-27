@@ -47,11 +47,11 @@ public class ChatController {
         }
 
         String timestamp = Instant.now().toString(); // ISO-8601 UTC representation string
-
         ChatMessage chatMessage = ChatMessage.builder()
                 .messageId("msg_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8))
                 .doctorId(doctorId)
                 .patientId(patientId)
+                .senderId(UserContext.getUserId())
                 .message(textMessage)
                 .createdAt(timestamp)
                 .updatedAt(timestamp)

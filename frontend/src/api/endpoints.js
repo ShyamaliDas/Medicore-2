@@ -72,4 +72,6 @@ export const ENDPOINTS = {
   // Bloodbank
   donorRegister: "/bloodbank/donor/register",
   donorsByGroup: (bloodGroup) => `/bloodbank/donors?bloodGroup=${encodeURIComponent(bloodGroup)}`,
+  myDonation: "/bloodbank/me/donation",
+  updateDonationDate: "/bloodbank/donor/update-date",
 };

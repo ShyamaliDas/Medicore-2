@@ -353,15 +353,18 @@ export default function DoctorChat() {
                         lastDay = day;
                       }
                       const run = [m];
+                      const runAuthor = m.senderId || m.patientId;
                       while (
                         i + run.length < messages.length &&
-                        messages[i + run.length].patientId === m.patientId &&
+                        (messages[i + run.length].senderId || messages[i + run.length].patientId) === runAuthor &&
                         new Date(messages[i + run.length].created_at || 0).toDateString() === day
                       ) {
                         run.push(messages[i + run.length]);
                       }
                       // On the doctor side, the "doctor" side of the bubble is mine.
-                      const isMe = m.patientId !== user?.userId;
+                      const isMe = m.senderId
+                        ? m.senderId === user?.userId
+                        : m.patientId !== user?.userId;
                       blocks.push(
                         <div key={`run-${m.messageId}`} className={`messenger-run ${isMe ? "messenger-run--mine" : "messenger-run--theirs"}`}>
                           {!isMe && (

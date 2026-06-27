@@ -113,8 +113,65 @@ public class BloodBankController {
                 "data", donor
             ));
         }).orElse(ResponseEntity.status(404).body(Map.of(
-            "success", false, 
+            "success", false,
             "message", "Donor profile record not found for this patient."
         )));
+    }
+
+    /**
+     * Get currently-authenticated patient's own donor record (for the
+     * "Update Last Donation Date" UI on /patient/blooddonor). Returns
+     * 404 when the patient hasn't registered yet, in which case the UI
+     * prompts them to register first.
+     */
+    @GetMapping("/me/donation")
+    public ResponseEntity<?> getMyDonorRecord() {
+        if (isNotPatient()) return forbiddenResponse();
+        return donorRepo.findByDonorId(UserContext.getUserId())
+                .<ResponseEntity<?>>map(donor -> ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "data", donor
+                )))
+                .orElse(ResponseEntity.status(404).body(Map.of(
+                        "success", false,
+                        "message", "You have not registered as a blood donor yet."
+                )));
+    }
+
+    /* ---------- admin ---------- */
+
+    @GetMapping("/admin/donors")
+    public ResponseEntity<?> adminListDonors(@RequestParam(required = false) String bloodGroup) {
+        if (!"admin".equalsIgnoreCase(UserContext.getRole())) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "Forbidden: Admin access required."
+            ));
+        }
+        List<BloodBankDonor> donors = (bloodGroup == null || bloodGroup.isBlank())
+                ? donorRepo.findAll()
+                : donorRepo.findByBloodgroup(bloodGroup);
+        return ResponseEntity.ok(Map.of("success", true, "data", donors));
+    }
+
+    @DeleteMapping("/admin/donors/{id}")
+    public ResponseEntity<?> adminDeleteDonor(@PathVariable String id) {
+        if (!"admin".equalsIgnoreCase(UserContext.getRole())) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "Forbidden: Admin access required."
+            ));
+        }
+        if (!donorRepo.existsById(id)) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "success", false,
+                    "message", "Donor record not found."
+            ));
+        }
+        donorRepo.deleteById(id);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Donor record removed."
+        ));
     }
 }
