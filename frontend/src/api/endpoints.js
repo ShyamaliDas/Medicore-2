@@ -66,6 +66,8 @@ export const ENDPOINTS = {
   // Pharmacist
   medicines: "/pharmacist/medicines",
   medicineById: (medicineId) => `/pharmacist/medicines/${medicineId}`,
+  pharmacistSearchPrescription: (email) =>
+    `/pharmacist/prescriptions/search?email=${encodeURIComponent(email)}`,
 
   // Chat
   chatSend: "/chat/send",

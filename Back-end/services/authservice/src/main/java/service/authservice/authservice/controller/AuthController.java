@@ -53,6 +53,16 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/email/{email}")
+    public ResponseEntity<AuthResponse> getUserByEmail(@PathVariable String email) {
+        try {
+            return ResponseEntity.ok(authService.getUserByEmail(email));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(AuthResponse.builder().success(false).message(e.getMessage()).build());
+        }
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<AuthResponse> logout(@RequestHeader("Authorization") String tokenHeader) {
     try {

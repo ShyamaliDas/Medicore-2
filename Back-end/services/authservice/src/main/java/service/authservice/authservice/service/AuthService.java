@@ -100,6 +100,15 @@ public class AuthService {
                 .build();
     }
 
+    public AuthResponse getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No user with that email."));
+        return AuthResponse.builder()
+                .success(true)
+                .data(mapToUserResponseData(user))
+                .build();
+    }
+
     public void logout(String token) {
         System.out.println("Token successfully invalidated on logout: " + token);
     }
