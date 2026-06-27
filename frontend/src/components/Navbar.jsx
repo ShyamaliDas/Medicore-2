@@ -21,7 +21,8 @@ const ROLE_LINKS = {
     { to: "/patient/donors",       label: "Blood Donors" },
   ],
   doctor: [
-    { to: "/doctor", label: "Dashboard" },
+    { to: "/doctor", label: "Appointments" },
+    { to: "/doctor/chat", label: "Chat" },
     { to: "/doctor/profile", label: "Profile" },
   ],
   pharmacist: [

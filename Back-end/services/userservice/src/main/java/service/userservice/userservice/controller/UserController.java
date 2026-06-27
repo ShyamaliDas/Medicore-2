@@ -36,6 +36,61 @@ public class UserController {
     @Autowired private PharmacistProfileRepository pharmRepo;
     @Autowired private RestTemplate restTemplate;
 
+    /**
+     * Loads the currently-authenticated doctor/pharmacist's saved profile.
+     * Frontend calls this on /doctor/profile and /pharmacist/profile mount
+     * so the form hydrates with existing values instead of looking empty.
+     *
+     * Returns 404 when the caller is a doctor/pharmacist who has never
+     * pressed Save yet (no profile row) — the frontend treats that as a
+     * fresh signup and shows the empty form, no error banner.
+     */
+    @GetMapping("/profile")
+    public ResponseEntity<?> getMyProfile() {
+        String role = UserContext.getRole();
+        String userId = UserContext.getUserId();
+
+        if ("doctor".equalsIgnoreCase(role)) {
+            return doctorRepo.findById(userId)
+                    .<ResponseEntity<?>>map(p -> ResponseEntity.ok(Map.of(
+                            "success", true,
+                            "data", Map.of(
+                                    "userId",         p.getUserId(),
+                                    "specialization", p.getSpecialization() != null ? p.getSpecialization() : "",
+                                    "qualification",  p.getQualification() != null ? p.getQualification() : "",
+                                    "location",       p.getLocation() != null ? p.getLocation() : "",
+                                    "visiting_fee",   p.getVisitingFee(),
+                                    "rating",         p.getRating(),
+                                    "approval",       p.getApproval()
+                            )
+                    )))
+                    .orElse(ResponseEntity.status(404).body(Map.of(
+                            "success", false,
+                            "message", "No doctor profile found. Save your details to create one."
+                    )));
+        }
+
+        if ("pharmacist".equalsIgnoreCase(role)) {
+            return pharmRepo.findById(userId)
+                    .<ResponseEntity<?>>map(p -> ResponseEntity.ok(Map.of(
+                            "success", true,
+                            "data", Map.of(
+                                    "userId",        p.getUserId(),
+                                    "pharmacy_name", p.getPharmacyName() != null ? p.getPharmacyName() : ""
+                            )
+                    )))
+                    .orElse(ResponseEntity.status(404).body(Map.of(
+                            "success", false,
+                            "message", "No pharmacist profile found. Save your details to create one."
+                    )));
+        }
+
+        return ResponseEntity.status(403).body(Map.of(
+                "success", false,
+                "message", "Forbidden: Only doctors and pharmacists have profiles."
+        ));
+    }
+
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, Object> payload) {
         String role = UserContext.getRole();

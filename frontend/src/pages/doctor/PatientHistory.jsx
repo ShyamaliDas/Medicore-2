@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import Navbar from "../../components/Navbar";
@@ -31,8 +31,13 @@ export default function PatientHistory() {
     <>
       <Navbar />
       <div className="container mt-4">
-        <h2>Patient History</h2>
-        <p className="text-muted">Patient ID: {patientId}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h2 className="mb-0">Patient History</h2>
+            <p className="text-muted mb-0">Patient ID: {patientId}</p>
+          </div>
+          <Link to="/doctor" className="btn btn-outline-secondary btn-sm">← Back to queue</Link>
+        </div>
 
         {loading && <p>Loading...</p>}
         {error && <div className="alert alert-danger">{error}</div>}
@@ -47,9 +52,17 @@ export default function PatientHistory() {
           <div>
             {prescriptions.map((rx) => (
               <div key={rx.prescriptionID} className="border rounded p-3 mb-3">
-                <p className="mb-1">
-                  <strong>Rx ID:</strong> {rx.prescriptionID}
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <p className="mb-1">
+                    <strong>Rx ID:</strong> {rx.prescriptionID}
+                  </p>
+                  <Link
+                    to={`/doctor/prescriptions/${rx.prescriptionID}`}
+                    className="btn btn-outline-primary btn-sm"
+                  >
+                    Open / Edit
+                  </Link>
+                </div>
                 <p className="mb-1 text-muted">{rx.description || "No description yet"}</p>
                 {rx.symptoms && (
                   <p className="mb-2 text-muted" style={{ fontSize: "0.9rem" }}>

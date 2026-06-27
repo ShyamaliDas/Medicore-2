@@ -22,6 +22,7 @@ import MyAppointments from "./pages/patient/MyAppointments";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import WritePrescription from "./pages/doctor/WritePrescription";
 import PatientHistory from "./pages/doctor/PatientHistory";
+import DoctorChat from "./pages/doctor/DoctorChat";
 
 // Placeholder dashboards (create these files — see instructions below)
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard.jsx";
@@ -96,6 +97,9 @@ export default function App() {
             } />
             <Route path="/doctor/patient/:patientId" element={
               <ProtectedRoute allowedRoles={["doctor"]}><PatientHistory /></ProtectedRoute>
+            } />
+            <Route path="/doctor/chat" element={
+              <ProtectedRoute allowedRoles={["doctor"]}><DoctorChat /></ProtectedRoute>
             } />
             <Route path="/doctor/profile" element={
               <ProtectedRoute allowedRoles={["doctor"]}><Profile /></ProtectedRoute>
