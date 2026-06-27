@@ -311,7 +311,7 @@ function AppointmentList({ title, rows, kind }) {
                     </Link>
                     {appt.prescriptionID && (
                       <Link
-                        to={`/doctor/prescriptions/${appt.prescriptionID}?serial=${appt.serial_no}`}
+                        to={`/doctor/prescriptions/${appt.prescriptionID}?serial=${appt.serialNo}`}
                         className="btn btn-primary btn-sm"
                       >
                         Prescribe

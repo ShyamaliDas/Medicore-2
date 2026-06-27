@@ -54,47 +54,59 @@ public class PatientController {
 
             String doctorId = String.valueOf(payload.get("doctor_id"));
             
-            // 3. Create Appointment
+            // 3. Compute the per-(doctor, date) slot number. The doctor's
+            //    1st appointment on a given day is slot 1 (08:00), 2nd is
+            //    slot 2 (08:30), etc. — restarting at 1 for each new day.
+            String apptDate = payload.get("date") != null ? String.valueOf(payload.get("date")) : "N/A";
+            int nextSlot = (int) apptRepo.countByDoctorIdAndDate(doctorId, apptDate) + 1;
+
+            // 4. Create Appointment
             Appointment appt = Appointment.builder()
                     .patientId(UserContext.getUserId())
                     .patientName(UserContext.getName())
                     .patientPhone(UserContext.getPhone())
                     .doctorId(doctorId)
-                    .date(payload.get("date") != null ? String.valueOf(payload.get("date")) : "N/A")
+                    .date(apptDate)
+                    .slotNo(nextSlot)
                     .symptoms(payload.get("symptoms") != null ? String.valueOf(payload.get("symptoms")) : "N/A")
                     .transactionId(payload.get("transaction_id") != null ? String.valueOf(payload.get("transaction_id")) : "N/A")
                     .isComplete(false)
                     .build();
-            
+
             apptRepo.save(appt);
 
-            // 4. Create Prescription Shell
+            // 5. Create Prescription Shell
             Prescription presc = Prescription.builder()
                     .patientId(appt.getPatientId())
                     .doctorId(appt.getDoctorId())
                     .symptoms(appt.getSymptoms())
                     .transactionId(appt.getTransactionId())
                     .build();
-                    
+
             prescRepo.save(presc);
 
-            // 5. Fetch Doctor Profile
+            // 6. Fetch Doctor Profile
             DoctorProfile docProfile = docRepo.findById(doctorId).orElse(new DoctorProfile());
 
-            // 6. Return Success Response
+            // 7. Compute the slot time (08:00 + (slot-1)*30 min) so the
+            //    frontend never has to derive it.
+            String slotTime = computeSlotTime(nextSlot);
+
+            // 8. Return Success Response
             return ResponseEntity.status(201).body(Map.of(
-                "success", true, 
-                "message", "Appointment booked successfully.", 
+                "success", true,
+                "message", "Appointment booked successfully.",
                 "data", Map.of(
                     "prescriptionID", presc.getPrescriptionId(),
                     "patient_id", appt.getPatientId(),
                     "doctor_info", Map.of(
-                            "doctorId", doctorId, 
-                            "specialization", docProfile.getSpecialization() != null ? docProfile.getSpecialization() : ""
-                    ),
+                            "doctorId", doctorId,
+                            "specialization", docProfile.getSpecialization() != null ? docProfile.getSpecialization() : ""),
                     "location", docProfile.getLocation() != null ? docProfile.getLocation() : "",
                     "date", appt.getDate(),
-                    "serial_no", appt.getSerialNo(),
+                    "serial_no", nextSlot,
+                    "slot_no", nextSlot,
+                    "time", slotTime,
                     "symptoms", appt.getSymptoms()
                 )
             ));
@@ -141,13 +153,24 @@ public class PatientController {
     private Map<String, Object> mapPatientAppointmentResponse(Appointment appointment) {
         DoctorProfile docProfile = docRepo.findById(appointment.getDoctorId()).orElse(new DoctorProfile());
 
+        // Per-(doctor, date) slot number. Falls back to 1 for legacy rows
+        // that pre-date the slot_no column being populated.
+        int daySlot = appointment.getSlotNo() != null ? appointment.getSlotNo() : 1;
+
         Map<String, Object> item = new HashMap<>();
         item.put("appointmentId", String.valueOf(appointment.getSerialNo()));
+        item.put("doctorId", appointment.getDoctorId());
         item.put("doctorName", fetchDoctorName(appointment.getDoctorId()));
         item.put("department", docProfile.getSpecialization() != null ? docProfile.getSpecialization() : "");
+        item.put("location", docProfile.getLocation() != null ? docProfile.getLocation() : "");
         item.put("date", appointment.getDate());
+        // Keep the global PK as serialNo (used by internal flows) but
+        // expose the per-day slot as serial_no + slot_no so the patient
+        // sees their queue number for the day.
         item.put("serialNo", appointment.getSerialNo());
-        item.put("serial_no", appointment.getSerialNo());
+        item.put("serial_no", daySlot);
+        item.put("slot_no", daySlot);
+        item.put("time", computeSlotTime(daySlot));
         item.put("status", Boolean.TRUE.equals(appointment.getIsComplete()) ? "COMPLETED" : "CONFIRMED");
         return item;
     }
@@ -186,5 +209,20 @@ public class PatientController {
         }
 
         return "Unknown Doctor";
+    }
+
+    /**
+     * Compute the appointment slot time for a given per-doctor, per-date slot number.
+     * Slot 1 → 08:00 AM, slot 2 → 08:30 AM, slot 3 → 09:00 AM, ...
+     */
+    public static String computeSlotTime(int slotNo) {
+        if (slotNo < 1) slotNo = 1;
+        int totalMinutes = (slotNo - 1) * 30;
+        int hour = 8 + totalMinutes / 60;
+        int minute = totalMinutes % 60;
+        String ampm = hour < 12 ? "AM" : "PM";
+        int displayHour = hour % 12;
+        if (displayHour == 0) displayHour = 12;
+        return String.format("%d:%02d %s", displayHour, minute, ampm);
     }
 }

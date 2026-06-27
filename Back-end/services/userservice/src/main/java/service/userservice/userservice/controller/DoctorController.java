@@ -130,7 +130,13 @@ public class DoctorController {
      */
     private Map<String, Object> mapAppointmentResponse(Appointment a, String doctorId) {
         Map<String, Object> row = new java.util.HashMap<>();
-        row.put("serial_no", a.getSerialNo());
+        // Per-(doctor, date) slot number. The global PK stays as serialNo
+        // so /doctor/appointments/{serialNo}/complete keeps working.
+        int daySlot = a.getSlotNo() != null ? a.getSlotNo() : 0;
+        row.put("serial_no", daySlot);
+        row.put("slot_no", daySlot);
+        row.put("serialNo", a.getSerialNo());
+        row.put("time", PatientController.computeSlotTime(daySlot));
         row.put("date", a.getDate());
         row.put("patient_id", a.getPatientId());
         row.put("name", a.getPatientName() != null ? a.getPatientName() : "Unknown");
