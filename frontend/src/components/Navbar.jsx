@@ -22,6 +22,7 @@ const ROLE_LINKS = {
   ],
   doctor: [
     { to: "/doctor", label: "Appointments" },
+    { to: "/doctor/patient-history", label: "Patient History" },
     { to: "/doctor/chat", label: "Chat" },
     { to: "/doctor/profile", label: "Profile" },
   ],

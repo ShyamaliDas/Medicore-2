@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import Navbar from "../../components/Navbar";
@@ -9,12 +9,57 @@ const EMPTY_MED = { medicine_name: "", dosage: "", duration: "" };
 export default function WritePrescription() {
   const { prescriptionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Optional appointment serial_no passed via query string
+  // e.g. /doctor/prescriptions/:prescriptionId?serial=12
+  const params = new URLSearchParams(location.search);
+  const appointmentSerial = params.get("serial");
 
   const [description, setDescription] = useState("");
   const [medicines, setMedicines] = useState([{ ...EMPTY_MED }]);
+  const [loadingExisting, setLoadingExisting] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // Pre-load the existing prescription so the Edit flow doesn't
+  // present a blank form that would clobber the existing record
+  // with empty values on save.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiRequest(ENDPOINTS.doctorGetPrescription(prescriptionId), {
+          auth: true,
+        });
+        if (cancelled) return;
+        const data = res?.data ?? res;
+        if (data) {
+          if (data.description) setDescription(data.description);
+          if (Array.isArray(data.medicine_details) && data.medicine_details.length > 0) {
+            setMedicines(
+              data.medicine_details.map((m) => ({
+                medicine_name: m.medicine_name ?? "",
+                dosage: m.dosage ?? "",
+                duration: m.duration ?? "",
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        // 404 or missing record is fine for a brand-new prescription slot
+        if (!cancelled) {
+          setMedicines([{ ...EMPTY_MED }]);
+        }
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [prescriptionId]);
 
   function handleMedChange(index, e) {
     const { name, value } = e.target;
@@ -36,10 +81,25 @@ export default function WritePrescription() {
     setError("");
     setSubmitting(true);
     try {
+      // 1. Save the prescription
       await apiRequest(ENDPOINTS.doctorPrescription(prescriptionId), {
         method: "PUT",
         body: { description, medicine_details: medicines },
       });
+
+      // 2. Mark the parent appointment complete (best effort — does
+      //    not block the success state if the appointment is unknown).
+      if (appointmentSerial) {
+        try {
+          await apiRequest(ENDPOINTS.doctorCompleteAppointment(appointmentSerial), {
+            method: "PUT",
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn("Could not mark appointment complete:", e.message);
+        }
+      }
+
       setSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -62,11 +122,13 @@ export default function WritePrescription() {
             Prescription saved successfully!{" "}
             <button
               className="btn btn-primary btn-sm ms-2"
-              onClick={() => navigate("/doctor")}
+              onClick={() => navigate("/doctor", { state: { refresh: true } })}
             >
               Back to Dashboard
             </button>
           </div>
+        ) : loadingExisting ? (
+          <div className="text-muted">Loading prescription…</div>
         ) : (
           <div style={{ maxWidth: 640 }}>
             <form onSubmit={handleSubmit}>

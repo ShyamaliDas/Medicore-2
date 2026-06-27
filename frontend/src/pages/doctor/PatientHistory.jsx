@@ -58,9 +58,9 @@ export default function PatientHistory() {
                   </p>
                   <Link
                     to={`/doctor/prescriptions/${rx.prescriptionID}`}
-                    className="btn btn-outline-primary btn-sm"
+                    className="btn btn-primary btn-sm"
                   >
-                    Open / Edit
+                    Edit
                   </Link>
                 </div>
                 <p className="mb-1 text-muted">{rx.description || "No description yet"}</p>

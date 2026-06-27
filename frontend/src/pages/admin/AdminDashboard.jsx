@@ -36,7 +36,7 @@ const NAV_CARDS = [
   {
     to: "/admin/users",
     title: "User Management",
-    description: "View all users, change roles, remove accounts from the platform.",
+    description: "View all users and remove accounts from the platform.",
     icon: "👥",
   },
   {

@@ -29,6 +29,29 @@ export default function BloodDonor() {
   const [updateRecordMessage, setUpdateRecordMessage] = useState("");
 
   const [activeTab, setActiveTab] = useState("register");
+  // Tracks whether the initial /me/donation lookup has resolved so the
+  // Register tab doesn't flash the form before we know the user is already
+  // registered.
+  const [registerBootstrapped, setRegisterBootstrapped] = useState(false);
+
+  // Bootstrap: on mount and whenever the Register tab becomes active, fetch
+  // the user's existing donor record (if any) so a refresh doesn't drop
+  // them back into the registration form.
+  async function bootstrapRegistration() {
+    try {
+      const res = await apiRequest(ENDPOINTS.myDonation, { auth: true });
+      if (res?.success && res?.data) {
+        setDonorProfile(res.data);
+      } else {
+        setDonorProfile(null);
+      }
+    } catch {
+      // Silent — 404 / network errors fall through to the registration form.
+      setDonorProfile(null);
+    } finally {
+      setRegisterBootstrapped(true);
+    }
+  }
 
   async function loadMyDonation() {
     setUpdateLoadingRecord(true);
@@ -51,7 +74,9 @@ export default function BloodDonor() {
   }
 
   useEffect(() => {
+    if (activeTab === "register") bootstrapRegistration();
     if (activeTab === "update") loadMyDonation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   async function handleUpdateDate(e) {
@@ -188,7 +213,9 @@ export default function BloodDonor() {
 
         {activeTab === "register" && (
           <div className="tab-panel form-max-width">
-            {donorProfile ? (
+            {!registerBootstrapped ? (
+              <p className="search-meta">Checking your donor record…</p>
+            ) : donorProfile ? (
               <>
                 <div className="donor-info-strip">
                   <span className="donor-info-strip__icon">🩸</span>

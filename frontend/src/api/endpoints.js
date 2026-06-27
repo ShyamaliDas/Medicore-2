@@ -27,11 +27,14 @@ export const ENDPOINTS = {
 
   // Patient
   appointments: "/patient/appointments",
+  myAppointments: "/patient/myallappointments",
   prescriptions: "/patient/prescriptions",
   prescriptionsByDoctor: (doctorId) => `/patient/prescriptions/doctor/${doctorId}`,
 
   // Doctor
   doctorPrescription: (prescriptionId) => `/doctor/prescriptions/${prescriptionId}`,
+  doctorGetPrescription: (prescriptionId) => `/doctor/prescriptions/${prescriptionId}`,
+  doctorCompleteAppointment: (serialNo) => `/doctor/appointments/${serialNo}/complete`,
   doctorPrescriptionsByPatient: (patientId) => `/doctor/prescriptions/patient/${patientId}`,
   doctorAppointments: "/doctor/appointments",
 
@@ -63,6 +66,8 @@ export const ENDPOINTS = {
   // Pharmacist
   medicines: "/pharmacist/medicines",
   medicineById: (medicineId) => `/pharmacist/medicines/${medicineId}`,
+  pharmacistSearchPrescription: (email) =>
+    `/pharmacist/prescriptions/search?email=${encodeURIComponent(email)}`,
 
   // Chat
   chatSend: "/chat/send",

@@ -370,41 +370,27 @@ function DoctorProfile({ user }) {
 
           <section className="card doctor-section">
             <div className="doctor-section__head">
-              <h3 className="doctor-section__title">Recent Patients</h3>
-              <span className="doctor-section__count">{patients.length} total</span>
+              <h3 className="doctor-section__title">Patient History</h3>
+              <Link to="/doctor/patient-history" className="doctor-section__link">
+                Open full list
+              </Link>
             </div>
-            {loading ? (
-              <p className="text-muted small">Loading…</p>
-            ) : patients.length === 0 ? (
-              <p className="text-muted small">No patients yet.</p>
-            ) : (
-              <ul className="doctor-patient-list">
-                {patients.slice(0, 6).map((p) => {
-                  const phue = hueForId(p.patientId);
-                  return (
-                    <li key={p.patientId} className="doctor-patient-row">
-                      <div
-                        className="doctor-appt-avatar"
-                        style={{ background: `hsl(${phue}, 55%, 88%)`, color: `hsl(${phue}, 45%, 30%)` }}
-                        aria-hidden
-                      >
-                        {initialsOf(p.name)}
-                      </div>
-                      <div className="doctor-appt-body">
-                        <div className="doctor-appt-name">{p.name}</div>
-                        <div className="doctor-appt-meta">{p.phone || "No phone"}</div>
-                      </div>
-                      <Link
-                        to={`/doctor/patient/${p.patientId}`}
-                        className="doctor-appt-link"
-                      >
-                        View →
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <p className="text-muted small" style={{ marginTop: 4 }}>
+              You've seen <strong>{patients.length}</strong> unique patient
+              {patients.length !== 1 ? "s" : ""} so far. Use the dedicated
+              Patient History page to search, open, and edit any record.
+            </p>
+            <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                to="/doctor/patient-history"
+                className="btn btn-primary btn-sm"
+              >
+                Open Patient History →
+              </Link>
+              <Link to="/doctor" className="btn btn-outline btn-sm">
+                Back to queue
+              </Link>
+            </div>
           </section>
         </div>
 

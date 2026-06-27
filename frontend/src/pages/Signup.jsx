@@ -5,11 +5,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/medicoreLogo.png";
 
+// Admin accounts are provisioned out-of-band, so the public signup form
+// only offers the three self-service roles.
 const ROLES = [
   { value: "patient",    label: "Patient" },
   { value: "doctor",     label: "Doctor" },
   { value: "pharmacist", label: "Pharmacist" },
-  { value: "admin",      label: "Admin" },
 ];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];

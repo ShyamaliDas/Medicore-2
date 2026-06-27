@@ -20,10 +20,12 @@ import Navbar from "../../components/Navbar";
 import { apiRequest, getErrorMessage } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 
+// Only the actionable buckets — "All Doctors" was removed because every row
+// is either pending or approved, so this view stays focused on what the
+// admin can act on.
 const TABS = [
   { key: "pending",  label: "Pending Approval", path: ENDPOINTS.adminDoctorsPending },
   { key: "approved", label: "Approved",         path: ENDPOINTS.adminDoctorsApproved },
-  { key: "all",      label: "All Doctors",      path: ENDPOINTS.adminDoctors },
 ];
 
 export default function AdminDoctors() {
@@ -126,9 +128,7 @@ export default function AdminDoctors() {
             <p>
               {tab === "pending"
                 ? "No doctors are awaiting approval."
-                : tab === "approved"
-                ? "No approved doctors yet."
-                : "No doctors registered."}
+                : "No approved doctors yet."}
             </p>
           </div>
         ) : (

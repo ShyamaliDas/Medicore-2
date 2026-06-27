@@ -27,9 +27,7 @@ export default function AdminUsers() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [busy, setBusy] = useState({}); // userId -> "role" | "delete"
-  // Inline row editor for role-change; tracks which row is mid-edit
-  const [editingRole, setEditingRole] = useState({});
+  const [busy, setBusy] = useState({}); // userId -> "delete"
   // Confirmation state for delete
   const [confirmDelete, setConfirmDelete] = useState(null);
 
@@ -63,28 +61,6 @@ export default function AdminUsers() {
     });
   }, [users, search, roleFilter]);
 
-  async function handleRoleChange(u, newRole) {
-    if (!newRole || newRole === u.role) {
-      setEditingRole((e) => { const n = { ...e }; delete n[u.userId]; return n; });
-      return;
-    }
-    setBusy((b) => ({ ...b, [u.userId]: "role" }));
-    try {
-      await apiRequest(ENDPOINTS.adminChangeRole(u.userId), {
-        method: "PATCH",
-        body: { role: newRole },
-        auth: true,
-      });
-      // Apply optimistically; full refresh would also work.
-      setUsers((prev) => prev.map((row) => row.userId === u.userId ? { ...row, role: newRole } : row));
-      setEditingRole((e) => { const n = { ...e }; delete n[u.userId]; return n; });
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setBusy((b) => { const n = { ...b }; delete n[u.userId]; return n; });
-    }
-  }
-
   async function handleDelete(u) {
     setBusy((b) => ({ ...b, [u.userId]: "delete" }));
     try {
@@ -109,7 +85,7 @@ export default function AdminUsers() {
           <div>
             <p className="section-eyebrow role-admin">Admin Portal</p>
             <h1 className="page-title">User Management</h1>
-            <p className="page-subtitle">View all users, change roles, or remove accounts.</p>
+            <p className="page-subtitle">View all users and remove accounts.</p>
           </div>
         </div>
 
@@ -177,7 +153,6 @@ export default function AdminUsers() {
                 {filtered.map((u) => {
                   const isSelf = u.userId && me?.userId && u.userId === me.userId;
                   const rowBusy = busy[u.userId];
-                  const isEditing = editingRole[u.userId];
                   return (
                     <tr key={u.userId}>
                       <td>
@@ -192,37 +167,11 @@ export default function AdminUsers() {
                         {u.bloodGroup ?? u.blood_group ?? "—"}
                       </td>
                       <td>
-                        {isEditing ? (
-                          <select
-                            className="form-control"
-                            style={{ padding: "6px 10px", fontSize: 13, maxWidth: 140 }}
-                            defaultValue={u.role}
-                            disabled={rowBusy === "role"}
-                            onChange={(e) => handleRoleChange(u, e.target.value)}
-                            onBlur={() => setEditingRole((s) => { const n = { ...s }; delete n[u.userId]; return n; })}
-                            autoFocus
-                          >
-                            {ROLES.map((r) => (
-                              <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className={`badge ${u.role === "admin" ? "badge-accent" : "badge-neutral"}`}>
-                            {u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "—"}
-                          </span>
-                        )}
+                        <span className={`badge ${u.role === "admin" ? "badge-accent" : "badge-neutral"}`}>
+                          {u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "—"}
+                        </span>
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        {!isEditing && (
-                          <button
-                            className="btn btn-outline btn-sm"
-                            disabled={!!rowBusy || isSelf}
-                            onClick={() => setEditingRole((s) => ({ ...s, [u.userId]: true }))}
-                            style={{ marginRight: 6 }}
-                          >
-                            Change Role
-                          </button>
-                        )}
                         <button
                           className="btn btn-danger btn-sm"
                           disabled={!!rowBusy || isSelf}

@@ -23,9 +23,9 @@ function hueForId(id) {
 
 function stockState(stock) {
   const n = Number(stock) || 0;
-  if (n <= 0)  return { key: "out",    label: "Out of stock" };
-  if (n <= 10) return { key: "low",    label: `Low · ${n} left` };
-  return            { key: "ok",     label: `${n} in stock` };
+  if (n <= 0)  return { key: "out", label: "Out of stock" };
+  if (n <= 10) return { key: "low", label: `Low · ${n} left` };
+  return            { key: "ok",  label: `${n} in stock` };
 }
 
 const EMPTY_FORM = {
@@ -37,7 +37,11 @@ const EMPTY_FORM = {
   expiry_date: "",
 };
 
-// ─── identity header (mirrors doctor) ─────────────────────────────────────
+const EMPTY_STOCK_FORM = {
+  stock: "",
+};
+
+// ─── identity header ─────────────────────────────────────────────────────
 
 function PharmacistHeader({ user, pharmacyName, totalMeds }) {
   const hue = hueForId(user?.userId || user?.email || "pharmacist");
@@ -76,7 +80,7 @@ function PharmacistHeader({ user, pharmacyName, totalMeds }) {
   );
 }
 
-// ─── metric tile (reused from doctor) ─────────────────────────────────────
+// ─── metric tile ─────────────────────────────────────────────────────────
 
 function MetricTile({ tone, icon, label, value, loading }) {
   return (
@@ -90,12 +94,13 @@ function MetricTile({ tone, icon, label, value, loading }) {
   );
 }
 
-// ─── medicine row (reuses doctor-appt-list rhythm) ─────────────────────────
+// ─── medicine row (per-row Update Stock button) ──────────────────────────
 
-function MedicineRow({ med, onEdit, onDispense, onDelete }) {
-  const st = stockState(med.stock);
-  const hue = hueForId(med.medicine_id || med.name);
+function MedicineRow({ med, onEditDetails, onUpdateStock, onDelete }) {
+  const st = stockState(med.quantity);
+  const hue = hueForId(med.medicineId || med.name);
   const outOfStock = st.key === "out";
+  const displayName = med.name && med.name.trim().length > 0 ? med.name : <em style={{ color: "var(--text-muted)" }}>(unnamed)</em>;
 
   return (
     <li className="doctor-appt-row">
@@ -104,15 +109,15 @@ function MedicineRow({ med, onEdit, onDispense, onDelete }) {
         style={{ background: `hsl(${hue}, 55%, 88%)`, color: `hsl(${hue}, 45%, 30%)` }}
         aria-hidden
       >
-        {initialsOf(med.name)}
+        {initialsOf(med.name || med.medicineId)}
       </div>
 
       <div className="doctor-appt-body">
-        <div className="doctor-appt-name">{med.name}</div>
+        <div className="doctor-appt-name">{displayName}</div>
         <div className="doctor-appt-meta">
           {med.category || "Uncategorised"}
           {med.manufacturer ? ` · ${med.manufacturer}` : ""}
-          {med.expiry_date ? ` · exp ${med.expiry_date}` : ""}
+          {med.expiryDate || med.expiry_date ? ` · exp ${med.expiryDate || med.expiry_date}` : ""}
         </div>
       </div>
 
@@ -126,20 +131,19 @@ function MedicineRow({ med, onEdit, onDispense, onDelete }) {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => onEdit(med)}
-            disabled={outOfStock}
-            title={outOfStock ? "Cannot dispense — out of stock" : "Edit details"}
+            className="btn btn-primary btn-sm"
+            onClick={() => onUpdateStock(med)}
+            title="Update stock quantity for this medicine"
           >
-            ✏️ Edit
+            📦 Update Stock
           </button>
           <button
             type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => onDispense(med)}
-            disabled={outOfStock}
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEditDetails(med)}
+            title="Edit name, price, category, manufacturer, expiry"
           >
-            💊 Dispense
+            ✏️ Edit
           </button>
           <button
             type="button"
@@ -155,13 +159,27 @@ function MedicineRow({ med, onEdit, onDispense, onDelete }) {
   );
 }
 
-// ─── modal (reuses .modal-* from Profile) ─────────────────────────────────
+// ─── modals ──────────────────────────────────────────────────────────────
 
 function MedicineModal({ open, initial, onClose, onSave, saving }) {
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...EMPTY_FORM, ...initial } : EMPTY_FORM);
+    if (open) {
+      setForm(
+        initial
+          ? {
+              ...EMPTY_FORM,
+              name:         initial.name || "",
+              category:     initial.category || "",
+              price:        initial.price ?? "",
+              stock:        initial.quantity ?? "",
+              manufacturer: initial.manufacturer || "",
+              expiry_date:  initial.expiryDate || initial.expiry_date || "",
+            }
+          : EMPTY_FORM
+      );
+    }
   }, [open, initial]);
 
   if (!open) return null;
@@ -172,9 +190,12 @@ function MedicineModal({ open, initial, onClose, onSave, saving }) {
     e.preventDefault();
     if (!form.name.trim()) return;
     onSave({
-      ...form,
-      price: Number(form.price) || 0,
-      stock: Number(form.stock) || 0,
+      name:         form.name.trim(),
+      category:     form.category.trim(),
+      manufacturer: form.manufacturer.trim(),
+      expiry_date:  form.expiry_date,
+      price:        Number(form.price) || 0,
+      stock:        Number(form.stock) || 0,
     });
   };
 
@@ -192,7 +213,7 @@ function MedicineModal({ open, initial, onClose, onSave, saving }) {
 
         <form className="modal-form" onSubmit={submit}>
           <label className="modal-field">
-            <span>Name</span>
+            <span>Name *</span>
             <input
               type="text"
               value={form.name}
@@ -271,11 +292,400 @@ function MedicineModal({ open, initial, onClose, onSave, saving }) {
   );
 }
 
-// ─── main page ────────────────────────────────────────────────────────────
+function StockModal({ open, med, onClose, onSave, saving }) {
+  const [stock, setStock] = useState("");
+  const [mode, setMode]   = useState("set"); // "set" | "add"
+
+  useEffect(() => {
+    if (open) {
+      setStock(med?.quantity != null ? String(med.quantity) : "");
+      setMode("set");
+    }
+  }, [open, med]);
+
+  if (!open || !med) return null;
+
+  const submit = (e) => {
+    e.preventDefault();
+    const n = Number(stock);
+    if (Number.isNaN(n) || n < 0) return;
+    let next = n;
+    if (mode === "add") next = (Number(med.quantity) || 0) + n;
+    onSave({ ...med, quantity: next });
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3 className="modal-title">Update stock — {med.name || med.medicineId}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <form className="modal-form" onSubmit={submit}>
+          <p className="text-muted small" style={{ marginTop: 0 }}>
+            Current stock: <strong>{med.quantity ?? 0}</strong>
+          </p>
+
+          <div className="modal-row" style={{ gap: 8 }}>
+            <label
+              className="btn btn-outline btn-sm"
+              style={{
+                flex: 1, justifyContent: "center",
+                background: mode === "set" ? "var(--accent-bg)" : "transparent",
+                borderColor: mode === "set" ? "var(--accent)" : undefined,
+              }}
+            >
+              <input
+                type="radio"
+                name="mode"
+                value="set"
+                checked={mode === "set"}
+                onChange={() => setMode("set")}
+                style={{ marginRight: 6 }}
+              />
+              Set to value
+            </label>
+            <label
+              className="btn btn-outline btn-sm"
+              style={{
+                flex: 1, justifyContent: "center",
+                background: mode === "add" ? "var(--accent-bg)" : "transparent",
+                borderColor: mode === "add" ? "var(--accent)" : undefined,
+              }}
+            >
+              <input
+                type="radio"
+                name="mode"
+                value="add"
+                checked={mode === "add"}
+                onChange={() => setMode("add")}
+                style={{ marginRight: 6 }}
+              />
+              Add to current
+            </label>
+          </div>
+
+          <label className="modal-field">
+            <span>{mode === "set" ? "New stock value" : "Quantity to add"}</span>
+            <input
+              type="number"
+              min="0"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              autoFocus
+              required
+            />
+          </label>
+
+          <p className="text-muted small">
+            {mode === "set"
+              ? `Will set stock to ${Number(stock) || 0}.`
+              : `Will add ${Number(stock) || 0} to current ${med.quantity ?? 0} → ${(Number(med.quantity) || 0) + (Number(stock) || 0)}.`}
+          </p>
+
+          <div className="modal-actions">
+            <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+              {saving ? "Saving…" : "Update stock"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── inventory tab ───────────────────────────────────────────────────────
+
+function InventoryTab({
+  medicines, loading, error, query, setQuery,
+  onAdd, onEditDetails, onUpdateStock, onDelete, onRefresh,
+}) {
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return medicines;
+    return medicines.filter((m) =>
+      [m.name, m.category, m.manufacturer].some(
+        (v) => v && String(v).toLowerCase().includes(q)
+      )
+    );
+  }, [medicines, query]);
+
+  const metrics = useMemo(() => {
+    const total = medicines.length;
+    const out   = medicines.filter((m) => Number(m.quantity) <= 0).length;
+    const low   = medicines.filter((m) => {
+      const n = Number(m.quantity) || 0;
+      return n > 0 && n <= 10;
+    }).length;
+    const cats  = new Set(
+      medicines.map((m) => (m.category || "").trim().toLowerCase()).filter(Boolean)
+    ).size;
+    return { total, low, out, categories: cats };
+  }, [medicines]);
+
+  return (
+    <>
+      {/* Action bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onRefresh}>
+            ↻ Refresh
+          </button>
+        </div>
+        <button type="button" className="btn btn-primary btn-sm" onClick={onAdd}>
+          ➕ Add medicine
+        </button>
+      </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+
+      {/* Metric tiles */}
+      <div className="doctor-metrics">
+        <MetricTile tone="purple" icon="💊" label="Total medicines" value={metrics.total}       loading={loading} />
+        <MetricTile tone="orange" icon="⚠️" label="Low stock"      value={metrics.low}         loading={loading} />
+        <MetricTile tone="pink"   icon="🚫" label="Out of stock"   value={metrics.out}         loading={loading} />
+        <MetricTile tone="green"  icon="🏷" label="Categories"     value={metrics.categories}  loading={loading} />
+      </div>
+
+      {/* List */}
+      <section className="card" style={{ marginTop: 20, padding: "20px 22px" }}>
+        <div className="doctor-section__head">
+          <h3 className="doctor-section__title">Medicines in stock</h3>
+          <input
+            type="search"
+            className="modal-field__input"
+            style={{
+              maxWidth: 240,
+              padding: "8px 12px",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+            placeholder="Search by name, category…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+
+        {loading ? (
+          <p className="text-muted small">Loading inventory…</p>
+        ) : filtered.length === 0 ? (
+          <div className="state-empty">
+            {medicines.length === 0
+              ? "No medicines yet. Click “Add medicine” to stock your first item."
+              : `No matches for “${query}”.`}
+          </div>
+        ) : (
+          <ul className="doctor-appt-list">
+            {filtered.map((med) => (
+              <MedicineRow
+                key={med.medicineId || med.name}
+                med={med}
+                onEditDetails={onEditDetails}
+                onUpdateStock={onUpdateStock}
+                onDelete={onDelete}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+
+// ─── search prescription tab ─────────────────────────────────────────────
+
+function SearchPrescriptionTab() {
+  const [email, setEmail]         = useState("");
+  const [searching, setSearching] = useState(false);
+  const [result, setResult]       = useState(null);   // full success payload
+  const [error, setError]         = useState("");
+
+  async function handleSearch(e) {
+    e?.preventDefault?.();
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError("Please enter a patient email.");
+      return;
+    }
+    setSearching(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await apiRequest(ENDPOINTS.pharmacistSearchPrescription(trimmed), {
+        method: "GET",
+        auth: true,
+      });
+      if (!res?.success) {
+        setError(res?.message || "No prescription found.");
+      } else {
+        setResult(res);
+      }
+    } catch (err) {
+      setError(err.message || "Search failed.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  return (
+    <>
+      <section className="card" style={{ marginTop: 20, padding: "20px 22px" }}>
+        <div className="doctor-section__head" style={{ marginBottom: 12 }}>
+          <h3 className="doctor-section__title">Search prescription by patient email</h3>
+        </div>
+        <p className="text-muted small" style={{ marginTop: 0 }}>
+          Enter the patient's email to load their most recent prescription. We will show
+          the medicines, dosage, and duration prescribed.
+        </p>
+
+        <form
+          onSubmit={handleSearch}
+          style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}
+        >
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="patient@example.com"
+            className="modal-field__input"
+            style={{
+              flex: "1 1 260px",
+              padding: "10px 12px",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 14,
+            }}
+            required
+          />
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm"
+            disabled={searching}
+            style={{ alignSelf: "stretch" }}
+          >
+            {searching ? "Searching…" : "🔍 Search"}
+          </button>
+        </form>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginTop: 14 }}>
+            {error}
+          </div>
+        )}
+      </section>
+
+      {result?.data && (
+        <PrescriptionResult result={result.data} />
+      )}
+    </>
+  );
+}
+
+function PrescriptionResult({ result }) {
+  const meds = Array.isArray(result.medicines) ? result.medicines : [];
+
+  return (
+    <section className="card" style={{ marginTop: 16, padding: "20px 22px" }}>
+      <div className="doctor-section__head" style={{ marginBottom: 12 }}>
+        <h3 className="doctor-section__title">Last prescription</h3>
+        <span className="badge badge-success">Found</span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <InfoTile label="Patient ID"  value={result.patient_id} />
+        <InfoTile label="Doctor ID"   value={result.doctor_id} />
+        <InfoTile label="Symptoms"    value={result.symptoms} />
+        <InfoTile label="Prescription ID" value={result.prescription_id} />
+      </div>
+
+      {result.description ? (
+        <p className="text-muted small" style={{ marginTop: 0 }}>
+          <strong>Notes:</strong> {result.description}
+        </p>
+      ) : null}
+
+      <h4 style={{ margin: "16px 0 8px", fontSize: 14 }}>Medicines ({meds.length})</h4>
+
+      {meds.length === 0 ? (
+        <div className="state-empty">
+          This prescription has no medicines listed.
+        </div>
+      ) : (
+        <ul className="doctor-appt-list">
+          {meds.map((m, idx) => (
+            <li key={(m.medicine_name || m.medicineName || "med") + "-" + idx} className="doctor-appt-row">
+              <div
+                className="doctor-appt-avatar"
+                style={{
+                  background: `hsl(${(idx * 53) % 360}, 55%, 88%)`,
+                  color: `hsl(${(idx * 53) % 360}, 45%, 30%)`,
+                }}
+                aria-hidden
+              >
+                {initialsOf(m.medicine_name || m.medicineName)}
+              </div>
+              <div className="doctor-appt-body">
+                <div className="doctor-appt-name">
+                  {m.medicine_name || m.medicineName || "(unnamed)"}
+                </div>
+                <div className="doctor-appt-meta">
+                  Dose: <strong>{m.dosage || "—"}</strong>
+                  {" · "}
+                  Duration: <strong>{m.duration || "—"}</strong>
+                </div>
+              </div>
+              <div className="doctor-appt-right">
+                <span className="doctor-pill doctor-pill--blue">#{idx + 1}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function InfoTile({ label, value }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-soft, #f7f8fb)",
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: "10px 12px",
+      }}
+    >
+      <div style={{ fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-muted)" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, marginTop: 4, wordBreak: "break-word" }}>
+        {value || <em style={{ color: "var(--text-muted)" }}>—</em>}
+      </div>
+    </div>
+  );
+}
+
+// ─── main page ───────────────────────────────────────────────────────────
 
 export default function PharmacistDashboard() {
   const { user } = useAuth();
+  const [tab, setTab] = useState("inventory"); // "inventory" | "search"
 
+  // inventory state
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
@@ -283,9 +693,11 @@ export default function PharmacistDashboard() {
   const [query, setQuery]         = useState("");
 
   // modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing]     = useState(null);
-  const [saving, setSaving]       = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editing, setEditing]         = useState(null);
+  const [stockOpen, setStockOpen]     = useState(false);
+  const [stockMed, setStockMed]       = useState(null);
+  const [saving, setSaving]           = useState(false);
 
   // toast
   const [toast, setToast] = useState("");
@@ -299,8 +711,7 @@ export default function PharmacistDashboard() {
     setLoading(true);
     setError("");
     try {
-      const medsRes = await apiRequest(ENDPOINTS.medicines, { method: "GET" });
-      // Response shape may be { data: [...] } or [...] — normalise.
+      const medsRes = await apiRequest(ENDPOINTS.medicines, { method: "GET", auth: true });
       const list = Array.isArray(medsRes) ? medsRes : (medsRes?.data ?? []);
       setMedicines(list);
     } catch (err) {
@@ -310,63 +721,41 @@ export default function PharmacistDashboard() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (tab === "inventory") load(); }, [tab]);
 
   useEffect(() => {
-    // Pharmacy profile is best-effort — absence shouldn't break the page.
-    apiRequest(ENDPOINTS.profile, { method: "GET" })
+    apiRequest(ENDPOINTS.profile, { method: "GET", auth: true })
       .then((res) => setPharmacy(res?.data ?? null))
       .catch(() => {});
   }, []);
 
-  // ── derived metrics ──
-  const metrics = useMemo(() => {
-    const total   = medicines.length;
-    const out     = medicines.filter((m) => Number(m.stock) <= 0).length;
-    const low     = medicines.filter((m) => {
-      const n = Number(m.stock) || 0;
-      return n > 0 && n <= 10;
-    }).length;
-    const cats    = new Set(
-      medicines.map((m) => (m.category || "").trim().toLowerCase()).filter(Boolean)
-    ).size;
-    return { total, low, out, categories: cats };
-  }, [medicines]);
-
   const pharmacyName = pharmacy?.pharmacy_name || pharmacy?.name || "Pharmacy";
-
-  // ── filtered list ──
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return medicines;
-    return medicines.filter((m) =>
-      [m.name, m.category, m.manufacturer].some(
-        (v) => v && String(v).toLowerCase().includes(q)
-      )
-    );
-  }, [medicines, query]);
+  const totalMeds = medicines.length;
 
   // ── handlers ──
-  const openAdd = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (med) => { setEditing(med); setModalOpen(true); };
+  const openAdd          = () => { setEditing(null); setDetailsOpen(true); };
+  const openEditDetails  = (med) => { setEditing(med); setDetailsOpen(true); };
+  const openUpdateStock  = (med) => { setStockMed(med); setStockOpen(true); };
 
   const saveMedicine = async (payload) => {
     setSaving(true);
     try {
       if (editing) {
-        await apiRequest(ENDPOINTS.medicineById(editing.medicine_id), {
+        await apiRequest(ENDPOINTS.medicineById(editing.medicineId), {
           method: "PUT",
           body: payload,
+          auth: true,
         });
         flashToast(`${payload.name} updated.`);
       } else {
         await apiRequest(ENDPOINTS.medicines, {
           method: "POST",
           body: payload,
+          auth: true,
         });
         flashToast(`${payload.name} added to inventory.`);
       }
-      setModalOpen(false);
+      setDetailsOpen(false);
       await load();
     } catch (err) {
       flashToast(err.message || "Could not save medicine.");
@@ -375,25 +764,35 @@ export default function PharmacistDashboard() {
     }
   };
 
-  const dispense = async (med) => {
-    // Decrement stock by 1 — the prescription side of the app handles
-    // patient/doctor linkage separately.
+  const updateStock = async (medWithNewQty) => {
+    setSaving(true);
     try {
-      await apiRequest(ENDPOINTS.medicineById(med.medicine_id), {
+      await apiRequest(ENDPOINTS.medicineById(medWithNewQty.medicineId), {
         method: "PUT",
-        body: { ...med, stock: Math.max(0, Number(med.stock) - 1) },
+        body: {
+          name:    medWithNewQty.name,
+          price:   medWithNewQty.price,
+          stock:   medWithNewQty.quantity,
+          category:        medWithNewQty.category,
+          manufacturer:    medWithNewQty.manufacturer,
+          expiry_date:     medWithNewQty.expiryDate || medWithNewQty.expiry_date,
+        },
+        auth: true,
       });
-      flashToast(`Dispensed 1 × ${med.name}.`);
+      flashToast(`Stock for ${medWithNewQty.name} → ${medWithNewQty.quantity}.`);
+      setStockOpen(false);
       await load();
     } catch (err) {
-      flashToast(err.message || "Dispense failed.");
+      flashToast(err.message || "Could not update stock.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (med) => {
     if (!window.confirm(`Remove "${med.name}" from inventory?`)) return;
     try {
-      await apiRequest(ENDPOINTS.medicineById(med.medicine_id), { method: "DELETE" });
+      await apiRequest(ENDPOINTS.medicineById(med.medicineId), { method: "DELETE", auth: true });
       flashToast(`${med.name} removed.`);
       await load();
     } catch (err) {
@@ -401,7 +800,6 @@ export default function PharmacistDashboard() {
     }
   };
 
-  // ── render ──
   return (
     <>
       <Navbar />
@@ -411,92 +809,96 @@ export default function PharmacistDashboard() {
         <div className="page-header" style={{ borderBottom: "none", marginBottom: 8 }}>
           <div>
             <p className="section-eyebrow">Pharmacist Portal</p>
-            <h1 className="section-title">Inventory</h1>
+            <h1 className="section-title">Pharmacy</h1>
             <div className="accent-line" />
             <p className="page-subtitle">
-              Welcome back, {user?.name}. Stock, price, and dispense from here.
+              Welcome back, {user?.name}. Manage stock and look up prescriptions.
             </p>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="btn btn-outline btn-sm" onClick={load}>
-              ↻ Refresh
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={openAdd}>
-              ➕ Add medicine
-            </button>
           </div>
         </div>
 
-        {/* Identity */}
-        <PharmacistHeader user={user} pharmacyName={pharmacyName} totalMeds={metrics.total} />
+        <PharmacistHeader user={user} pharmacyName={pharmacyName} totalMeds={totalMeds} />
 
         {/* Toast */}
         {toast && (
           <div className="alert alert-success" style={{ marginTop: 16 }}>{toast}</div>
         )}
-        {error && (
-          <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>
-        )}
 
-        {/* Metric tiles */}
-        <div className="doctor-metrics" style={{ marginTop: 20 }}>
-          <MetricTile tone="purple" icon="💊" label="Total medicines" value={metrics.total}       loading={loading} />
-          <MetricTile tone="orange" icon="⚠️" label="Low stock"      value={metrics.low}         loading={loading} />
-          <MetricTile tone="pink"   icon="🚫" label="Out of stock"   value={metrics.out}         loading={loading} />
-          <MetricTile tone="green"  icon="🏷" label="Categories"     value={metrics.categories}  loading={loading} />
+        {/* Tabs */}
+        <div
+          role="tablist"
+          aria-label="Pharmacy sections"
+          style={{
+            display: "flex",
+            gap: 4,
+            marginTop: 20,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <TabButton active={tab === "inventory"} onClick={() => setTab("inventory")}>
+            💊 Medicines in stock
+          </TabButton>
+          <TabButton active={tab === "search"} onClick={() => setTab("search")}>
+            🔍 Search Prescription
+          </TabButton>
         </div>
 
-        {/* Search + list */}
-        <section className="card" style={{ marginTop: 20, padding: "20px 22px" }}>
-          <div className="doctor-section__head">
-            <h3 className="doctor-section__title">Medicines in stock</h3>
-            <input
-              type="search"
-              className="modal-field__input"
-              style={{
-                maxWidth: 240,
-                padding: "8px 12px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 13,
-              }}
-              placeholder="Search by name, category…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-
-          {loading ? (
-            <p className="text-muted small">Loading inventory…</p>
-          ) : filtered.length === 0 ? (
-            <div className="state-empty">
-              {medicines.length === 0
-                ? "No medicines yet. Click “Add medicine” to stock your first item."
-                : `No matches for “${query}”.`}
-            </div>
-          ) : (
-            <ul className="doctor-appt-list">
-              {filtered.map((med) => (
-                <MedicineRow
-                  key={med.medicine_id || med.name}
-                  med={med}
-                  onEdit={openEdit}
-                  onDispense={dispense}
-                  onDelete={remove}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
+        {tab === "inventory" && (
+          <InventoryTab
+            medicines={medicines}
+            loading={loading}
+            error={error}
+            query={query}
+            setQuery={setQuery}
+            onAdd={openAdd}
+            onEditDetails={openEditDetails}
+            onUpdateStock={openUpdateStock}
+            onDelete={remove}
+            onRefresh={load}
+          />
+        )}
+        {tab === "search" && <SearchPrescriptionTab />}
       </div>
 
       <MedicineModal
-        open={modalOpen}
+        open={detailsOpen}
         initial={editing}
-        onClose={() => setModalOpen(false)}
+        onClose={() => setDetailsOpen(false)}
         onSave={saveMedicine}
         saving={saving}
       />
+
+      <StockModal
+        open={stockOpen}
+        med={stockMed}
+        onClose={() => setStockOpen(false)}
+        onSave={updateStock}
+        saving={saving}
+      />
     </>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        background: "transparent",
+        border: "none",
+        borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+        padding: "10px 14px",
+        fontSize: 14,
+        fontWeight: active ? 600 : 500,
+        color: active ? "var(--accent)" : "var(--text-muted)",
+        cursor: "pointer",
+        marginBottom: -1,
+      }}
+    >
+      {children}
+    </button>
   );
 }

@@ -13,7 +13,7 @@
 //   - Until the GET resolves, we render the queue only — never the banner.
 
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import Navbar from "../../components/Navbar";
@@ -60,6 +60,7 @@ function hueForId(id) {
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
   const [incomplete, setIncomplete] = useState([]);
   const [complete, setComplete] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +105,9 @@ export default function DoctorDashboard() {
     return () => { cancelled = true; };
   }, []);
 
+  // Date filter — empty string = show every appointment.
+  const [dateFilter, setDateFilter] = useState("");
+
   // Derived metrics for the tile row.
   const metrics = useMemo(() => ({
     pending: incomplete.length,
@@ -113,6 +117,40 @@ export default function DoctorDashboard() {
       [...incomplete, ...complete].map((a) => a.patient_id).filter(Boolean)
     ).size,
   }), [incomplete, complete]);
+
+  // Filtered + sorted rows: newest serial_no first (serial is a
+  // monotonically increasing booking id, so a descending sort gives
+  // a stable "most recent first" view). Optional date filter
+  // narrows both lists to a specific calendar day.
+  const filteredIncomplete = useMemo(() => {
+    const rows = dateFilter
+      ? incomplete.filter((a) => a.date === dateFilter)
+      : incomplete;
+    return [...rows].sort((a, b) => (b.serial_no ?? 0) - (a.serial_no ?? 0));
+  }, [incomplete, dateFilter]);
+
+  const filteredComplete = useMemo(() => {
+    const rows = dateFilter
+      ? complete.filter((a) => a.date === dateFilter)
+      : complete;
+    return [...rows].sort((a, b) => (b.serial_no ?? 0) - (a.serial_no ?? 0));
+  }, [complete, dateFilter]);
+
+  // Re-fetch when the user returns from a successful prescription save
+  // so the Completed metric reflects the new state immediately.
+  useEffect(() => {
+    if (location.state?.refresh) {
+      (async () => {
+        try {
+          const res = await apiRequest(ENDPOINTS.doctorAppointments, { method: "GET" });
+          setIncomplete(res.data.incomplete || []);
+          setComplete(res.data.complete || []);
+        } catch {
+          /* keep previous data on a soft refresh failure */
+        }
+      })();
+    }
+  }, [location.state]);
 
   return (
     <>
@@ -145,6 +183,47 @@ export default function DoctorDashboard() {
           <MetricTile tone="pink"   icon="📋" label="Total"      value={metrics.total}      loading={loading} />
         </div>
 
+        {/* ── Date filter (calendar) ── */}
+        <div
+          className="card-sm"
+          style={{
+            marginTop: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <label
+            htmlFor="appt-date"
+            style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}
+          >
+            Filter by date
+          </label>
+          <input
+            id="appt-date"
+            type="date"
+            className="form-control"
+            style={{ maxWidth: 200 }}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          />
+          {dateFilter && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setDateFilter("")}
+            >
+              Clear
+            </button>
+          )}
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>
+            {dateFilter
+              ? `Showing ${filteredIncomplete.length + filteredComplete.length} appointment(s)`
+              : `Showing all ${metrics.total} appointment(s)`}
+          </span>
+        </div>
+
         {error && <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>}
 
         {!loading && !error && metrics.total === 0 && (
@@ -153,20 +232,27 @@ export default function DoctorDashboard() {
           </div>
         )}
 
+        {!loading && !error && metrics.total > 0 &&
+         filteredIncomplete.length === 0 && filteredComplete.length === 0 && (
+          <div className="state-empty" style={{ marginTop: 20 }}>
+            No appointments on {dateFilter}.
+          </div>
+        )}
+
         {/* ── Pending queue ── */}
-        {!loading && !error && incomplete.length > 0 && (
+        {!loading && !error && filteredIncomplete.length > 0 && (
           <AppointmentList
             title="Pending"
-            rows={incomplete}
+            rows={filteredIncomplete}
             kind="pending"
           />
         )}
 
         {/* ── Completed list ── */}
-        {!loading && !error && complete.length > 0 && (
+        {!loading && !error && filteredComplete.length > 0 && (
           <AppointmentList
             title="Completed"
-            rows={complete}
+            rows={filteredComplete}
             kind="completed"
           />
         )}
@@ -225,7 +311,7 @@ function AppointmentList({ title, rows, kind }) {
                     </Link>
                     {appt.prescriptionID && (
                       <Link
-                        to={`/doctor/prescriptions/${appt.prescriptionID}`}
+                        to={`/doctor/prescriptions/${appt.prescriptionID}?serial=${appt.serialNo}`}
                         className="btn btn-primary btn-sm"
                       >
                         Prescribe
