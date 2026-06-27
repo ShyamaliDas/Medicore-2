@@ -111,4 +111,58 @@ public class AuthService {
         counts.put("pharmacists", userRepository.countByRoleIgnoreCase("pharmacist"));
         return counts;
     }
+
+    /**
+     * Returns every user (password stripped) for the admin user-list page.
+     * Called by userservice's /api/v1/admin/users endpoint.
+     */
+    public java.util.List<Map<String, Object>> listAllUsers() {
+        java.util.List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (User u : userRepository.findAll()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("userId", u.getUserId());
+            row.put("name", u.getName());
+            row.put("email", u.getEmail());
+            row.put("role", u.getRole());
+            row.put("phone", u.getPhone());
+            row.put("bloodGroup", u.getBloodGroup());
+            row.put("approval", u.getApproval());
+            row.put("createdAt", u.getCreatedAt());
+            row.put("updatedAt", u.getUpdatedAt());
+            out.add(row);
+        }
+        return out;
+    }
+
+    /**
+     * Update a user's role (called by admin endpoint). Throws if id unknown.
+     */
+    public Map<String, Object> changeUserRole(String userId, String newRole) {
+        User u = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found."));
+        u.setRole(newRole);
+        userRepository.save(u);
+        Map<String, Object> row = new HashMap<>();
+        row.put("userId", u.getUserId());
+        row.put("name", u.getName());
+        row.put("email", u.getEmail());
+        row.put("role", u.getRole());
+        row.put("success", true);
+        row.put("message", "Role updated.");
+        return row;
+    }
+
+    /**
+     * Delete a user by id. Returns success map.
+     */
+    public Map<String, Object> deleteUser(String userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("User not found.");
+        }
+        userRepository.deleteById(userId);
+        return Map.of(
+                "success", true,
+                "message", "User deleted."
+        );
+    }
 }

@@ -76,22 +76,39 @@ public class DoctorController {
         if (isNotDoctor()) return forbiddenResponse();
 
         // 2. Process Request
-        List<Appointment> all = apptRepo.findByDoctorId(UserContext.getUserId());
-        
+        String doctorId = UserContext.getUserId();
+        List<Appointment> all = apptRepo.findByDoctorId(doctorId);
+
         return ResponseEntity.ok(Map.of("success", true, "data", Map.of(
-                "incomplete", all.stream().filter(a -> !a.getIsComplete()).map(this::mapAppointmentResponse).collect(Collectors.toList()),
-                "complete", all.stream().filter(Appointment::getIsComplete).map(this::mapAppointmentResponse).collect(Collectors.toList())
+                "incomplete", all.stream().filter(a -> !a.getIsComplete()).map(a -> mapAppointmentResponse(a, doctorId)).collect(Collectors.toList()),
+                "complete", all.stream().filter(Appointment::getIsComplete).map(a -> mapAppointmentResponse(a, doctorId)).collect(Collectors.toList())
         )));
     }
 
-    private Map<String, Object> mapAppointmentResponse(Appointment a) {
-        return Map.of(
-            "serial_no", a.getSerialNo(),
-            "date", a.getDate(),
-            "patient_id", a.getPatientId(),
-            "name", a.getPatientName() != null ? a.getPatientName() : "Unknown",
-            "phone", a.getPatientPhone() != null ? a.getPatientPhone() : "Unknown",
-            "symptoms", a.getSymptoms()
-        );
+    /**
+     * Build a per-appointment JSON row. Includes prescriptionID (the
+     * slot created when the patient booked the appointment) so the
+     * doctor's "Prescribe" link can navigate to /doctor/prescriptions/{id}
+     * instead of failing with prescriptionId undefined.
+     */
+    private Map<String, Object> mapAppointmentResponse(Appointment a, String doctorId) {
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("serial_no", a.getSerialNo());
+        row.put("date", a.getDate());
+        row.put("patient_id", a.getPatientId());
+        row.put("name", a.getPatientName() != null ? a.getPatientName() : "Unknown");
+        row.put("phone", a.getPatientPhone() != null ? a.getPatientPhone() : "Unknown");
+        row.put("symptoms", a.getSymptoms());
+
+        String prescriptionId = prescRepo
+                .findByDoctorIdAndPatientId(doctorId, a.getPatientId())
+                .stream()
+                .filter(p -> p.getSymptoms() != null && p.getSymptoms().equals(a.getSymptoms()))
+                .filter(p -> p.getTransactionId() != null && p.getTransactionId().equals(a.getTransactionId()))
+                .map(p -> p.getPrescriptionId())
+                .findFirst()
+                .orElse(null);
+        row.put("prescriptionID", prescriptionId);
+        return row;
     }
 }

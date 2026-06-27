@@ -58,13 +58,36 @@ export default function AdminDashboard() {
     setError("");
     try {
       const res = await apiRequest(ENDPOINTS.adminStats, { auth: true });
-      // The endpoint may wrap counts in .data or return them directly —
-      // accept either shape so the page survives minor backend variations.
-      setStats(res?.data ?? res ?? null);
+      // Backend returns:
+      //   { success: true, data: { breakdown: { patients, doctors_approved,
+      //                       doctors_pending, pharmacists }, total_users } }
+      // The cards expect flat keys + a "donors" count we synthesize later.
+      const payload = res?.data ?? res ?? {};
+      const breakdown = payload.breakdown ?? {};
+      setStats({
+        patients: breakdown.patients ?? 0,
+        doctors: (breakdown.doctors_approved ?? 0) + (breakdown.doctors_pending ?? 0),
+        approvedDoctors: breakdown.doctors_approved ?? 0,
+        pendingDoctors: breakdown.doctors_pending ?? 0,
+        pharmacists: breakdown.pharmacists ?? 0,
+        donors: 0, // filled in below from the donors endpoint
+        totalUsers: payload.total_users ?? 0,
+      });
+      fetchDonorCount();
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchDonorCount() {
+    try {
+      const res = await apiRequest(ENDPOINTS.adminDonors("All"), { auth: true });
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      setStats((prev) => (prev ? { ...prev, donors: list.length } : prev));
+    } catch {
+      // Non-fatal: donor count is supplementary.
     }
   }
 
