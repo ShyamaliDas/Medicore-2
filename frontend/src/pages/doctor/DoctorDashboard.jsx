@@ -109,14 +109,23 @@ export default function DoctorDashboard() {
   const [dateFilter, setDateFilter] = useState("");
 
   // Derived metrics for the tile row.
-  const metrics = useMemo(() => ({
-    pending: incomplete.length,
-    completed: complete.length,
-    total: incomplete.length + complete.length,
-    patients: new Set(
-      [...incomplete, ...complete].map((a) => a.patient_id).filter(Boolean)
-    ).size,
-  }), [incomplete, complete]);
+  //   - Pending / Completed / Patients: date-wise. When a date is
+  //     selected they show that day's counts; with no filter they
+  //     fall back to lifetime (same as Total).
+  //   - Total: lifetime appointment count across the doctor's whole
+  //     career — per spec this tile must NOT change.
+  const metrics = useMemo(() => {
+    const inDay = dateFilter ? incomplete.filter((a) => a.date === dateFilter) : incomplete;
+    const coDay = dateFilter ? complete.filter((a) => a.date === dateFilter) : complete;
+    return {
+      pending: inDay.length,
+      completed: coDay.length,
+      total: incomplete.length + complete.length,
+      patients: new Set(
+        [...inDay, ...coDay].map((a) => a.patient_id).filter(Boolean)
+      ).size,
+    };
+  }, [incomplete, complete, dateFilter]);
 
   // Filtered + sorted rows: newest serial_no first (serial is a
   // monotonically increasing booking id, so a descending sort gives
