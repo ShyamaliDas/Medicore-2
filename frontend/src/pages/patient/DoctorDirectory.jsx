@@ -1,7 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { ENDPOINTS } from "../../api/endpoints";
 import Navbar from "../../components/Navbar";
+
+function initialsOf(name) {
+  if (!name) return "??";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function DoctorDirectory() {
   const [doctors, setDoctors] = useState([]);
@@ -105,29 +113,27 @@ export default function DoctorDirectory() {
                 {filtered.length} doctor{filtered.length !== 1 ? "s" : ""} found
               </p>
             )}
-            <div className="mc-table-wrap">
-              <table className="mc-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Specialization</th>
-                    <th>Rating</th>
-                    <th>Fee</th>
-                    <th>Location</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((doc) => (
-                    <tr key={doc.doctorId}>
-                      <td>{doc.name}</td>
-                      <td><span className="badge badge-accent">{doc.specialization}</span></td>
-                      <td>{doc.rating ?? "—"}</td>
-                      <td>${doc.visiting_fee}</td>
-                      <td>{doc.location}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid-3">
+              {filtered.map((doc) => (
+                <div key={doc.doctorId} className="card doctor-card">
+                  <div
+                    className="doctor-appt-avatar"
+                    style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                  >
+                    {initialsOf(doc.name)}
+                  </div>
+                  <div className="doctor-card__name">{doc.name}</div>
+                  <div className="doctor-card__meta">
+                    {doc.specialization}{doc.specialization && doc.location ? " · " : ""}{doc.location}
+                  </div>
+                  <Link
+                    to={`/patient/book?doctorId=${doc.doctorId}`}
+                    className="btn btn-primary btn-sm"
+                  >
+                    Book Appointment
+                  </Link>
+                </div>
+              ))}
             </div>
           </>
         )}

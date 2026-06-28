@@ -1517,3 +1517,159 @@ a { color: inherit; }
   border: 1px dashed var(--border);
   border-radius: 12px;
 }
+
+/* Doctor directory card grid (avatar + name + meta + book button) */
+.doctor-card { text-align: center; padding: 24px 18px; }
+.doctor-card .doctor-appt-avatar { margin: 0 auto 14px; width: 64px; height: 64px; font-size: 18px; }
+.doctor-card__name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+.doctor-card__meta { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+
+
+/* ============================================================
+   BOOK APPOINTMENT — doctor cards + filter chips
+   ============================================================ */
+
+.docbook-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.docbook-search {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.docbook-search__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.docbook-search .form-control {
+  padding-left: 36px;
+}
+
+.docbook-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 22px;
+  padding-bottom: 6px;
+}
+
+.docbook-chip {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.docbook-chip:hover {
+  color: var(--accent-dark);
+  border-color: var(--accent);
+}
+
+.docbook-chip--active {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+.docbook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.docbook-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 14px);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.docbook-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+}
+
+.docbook-card__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.docbook-card__avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 18px;
+  background: var(--accent-light, #EFF6FF);
+  color: var(--accent-dark, #1E40AF);
+  border: 2px solid var(--white);
+  box-shadow: 0 0 0 2px var(--accent-light, #EFF6FF);
+}
+
+.docbook-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.docbook-card__name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.docbook-card__loc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.docbook-card__tag {
+  margin-top: 2px;
+}
+
+.docbook-card__cta {
+  width: 100%;
+  margin-top: auto;
+}
+
+.docbook-modal {
+  max-width: 520px;
+}
+
+.docbook-modal .modal-title {
+  margin-top: 2px;
+}
+
+.docbook-modal .modal-form {
+  margin-top: 4px;
+}
